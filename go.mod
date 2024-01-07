@@ -1,4 +1,4 @@
-module github.com/Goryudyuma/terraform-refactoring-blocks-auto-cleaner
+module github.com/Goryudyuma/tf-rbac
 
 go 1.21
 

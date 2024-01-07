@@ -1,8 +1,8 @@
-# TerraForm-Refactoring-Blocks-Auto-Cleaner
+# Terraform-Refactoring-Blocks-Auto-Cleaner
 
 ## description
 
-A tool that automatically deletes import blocks and moved blocks of terraform.
+A tool that automatically deletes import blocks and moved blocks of Terraform.
 
 ## install
 
@@ -12,5 +12,5 @@ go install github.com/dev-hato/tf-rbac@latest
 
 ## usage
 
-- move to your terraform project directory
+- move to your Terraform project directory
 - run `tf-rbac`

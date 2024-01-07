@@ -1,4 +1,4 @@
-module github.com/Goryudyuma/tf-rbac
+module github.com/dev-hato/tf-rbac
 
 go 1.21
 

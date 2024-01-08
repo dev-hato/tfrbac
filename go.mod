@@ -1,4 +1,4 @@
-module github.com/dev-hato/tf-rbac
+module github.com/dev-hato/tfrbac
 
 go 1.21
 

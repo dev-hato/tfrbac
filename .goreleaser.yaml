@@ -9,7 +9,7 @@
 version: 1
 before:
   hooks:
-    - if [ "$(git describe --tags --exact-match 2> /dev/null)" = "" ]; then git tag $(git describe --tags --abbrev=0 | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g'); fi
+    - [ "$(git describe --tags --exact-match 2> /dev/null)" = "" ] && git tag $(git describe --tags --abbrev=0 | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
     # You may remove this if you don't use go modules.
     - go mod tidy
 builds:

@@ -20,7 +20,7 @@ jobs:
         with:
           go-version: stable
       # tagがなければ、一つ前のtagからパッチバージョンを1足して新しくtagをつける
-      - run: if [ "$(git describe --tags --exact-match 2> /dev/null)" = "" ]; then git tag $(git describe --tags --abbrev=0 | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g'); fi
+      - run: if [ "$(git describe --tags --exact-match 2> /dev/null)" = "" ]; then git tag $(git describe --tags --abbrev=0 | awk -F. '{$NF = "$($NF + 1)";} 1' | sed 's/ /./g'); fi
       # More assembly might be required: Docker logins, GPG, etc.
       # It all depends on your needs.
       - name: Run GoReleaser

@@ -33,3 +33,8 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+brews:
+  - repository:
+      owner: dev-hato
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"

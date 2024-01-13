@@ -8,6 +8,7 @@ on:
       - fix-fail-notify
       - format-json-yml
       - github-actions-cache-cleaner
+      - goreleaser
       - super-linter
       - update-gitleaks
     types:

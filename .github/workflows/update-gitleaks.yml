@@ -1,0 +1,36 @@
+---
+name: update-gitleaks
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+  merge_group:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  update-gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+      - uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8 # v4.0.1
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Install packages
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        run: npm ci
+      - uses: dev-hato/actions-update-gitleaks@a0f269789224af8863fbb05f476d2a3ae96cfa99 # v0.0.58
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true

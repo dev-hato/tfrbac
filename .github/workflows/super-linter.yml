@@ -1,0 +1,26 @@
+---
+name: super-linter
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+jobs:
+  super-linter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8 # v4.0.1
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: bash "${GITHUB_WORKSPACE}/scripts/super_linter/super_linter/set_path.sh"
+      - name: Super-Linter
+        uses: super-linter/super-linter/slim@v5.7.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINTER_RULES_PATH: .
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true

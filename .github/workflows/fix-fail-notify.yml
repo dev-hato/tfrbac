@@ -1,0 +1,20 @@
+---
+name: fix-fail-notify
+on:
+  pull_request:
+  merge_group:
+jobs:
+  fix-fail-notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+          token: ${{secrets.CREATE_WORKFLOW_CI_TOKEN}}
+      - run: bash "${GITHUB_WORKSPACE}/scripts/fix_fail_notify/fix_fail_notify/fix_fail_notify.sh"
+      - uses: dev-hato/actions-diff-pr-management@8a65534aa8495a0a2b3320194f720a64029367a3 # v1.1.7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          branch-name-prefix: fix-fail-notify
+          pr-title-prefix: fail-notifyが間違ってたので直してあげたよ！

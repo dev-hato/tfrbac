@@ -6,8 +6,16 @@ A tool that automatically deletes import blocks and moved blocks (these are coll
 
 ## install
 
+### go install
+
 ```bash
 go install github.com/dev-hato/tfrbac@latest
+```
+
+### homebrew
+
+```bash
+brew install dev-hato/tap/tfrbac
 ```
 
 ## usage

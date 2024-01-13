@@ -12,12 +12,6 @@ brew install dev-hato/tap/tfrbac
 
 or, download binary from [release](https://github.com/dev-hato/tfrbac/releases/latest)
 
-### go install
-
-```bash
-go install github.com/dev-hato/tfrbac@latest
-```
-
 ## usage
 
 - move to your Terraform project directory

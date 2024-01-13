@@ -7,8 +7,10 @@ A tool that automatically deletes import blocks and moved blocks (these are coll
 ## install
 
 ```bash
-go install github.com/dev-hato/tfrbac@latest
+brew install dev-hato/tap/tfrbac
 ```
+
+or, download binary from [release](https://github.com/dev-hato/tfrbac/releases/latest).
 
 ## usage
 

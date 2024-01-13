@@ -9,7 +9,8 @@
 version: 1
 before:
   hooks:
-    # You may remove this if you don't use go modules.
+    # tagがなければ、一つ前のtagからパッチバージョンを1足して新しくtagをつける
+    - if [ "$(git describe --tags --exact-match 2> /dev/null)" = "" ]; then git tag $(git describe --tags --abbrev=0 | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g'); fi
     - go mod tidy
 builds:
   - env:

@@ -21,6 +21,8 @@ jobs:
           go-version: stable
       # More assembly might be required: Docker logins, GPG, etc.
       # It all depends on your needs.
+      - run: if [ "$(git describe --tags --exact-match 2> /dev/null)" = "" ]; then git tag $(git describe --tags --abbrev=0 | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g'); fi
+        # tagがなければ、一つ前のtagからパッチバージョンを1足して新しくtagをつける
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@7ec5c2b0c6cdda6e8bbb49444bc797dd33d74dd8 # v5.0.0
         with:

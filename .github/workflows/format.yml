@@ -1,0 +1,33 @@
+---
+name: format
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+  merge_group:
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version: stable
+      - if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        run: go mod tidy
+      - uses: dev-hato/actions-diff-pr-management@40e65038ab238f87b7b71c40f4d54d0d50760047 # v1.1.8
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          branch-name-prefix: format
+          pr-title-prefix: Format修正
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true

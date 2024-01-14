@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/cockroachdb/errors"
 	"log"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )

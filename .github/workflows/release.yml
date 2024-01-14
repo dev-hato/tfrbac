@@ -19,8 +19,12 @@ jobs:
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: stable
+      - name: Get current tag
+        id: get_current_tag
+        run: echo "current_tag=$(git describe --tags --exact-match 2> /dev/null)" >> "$GITHUB_OUTPUT"
       # tagがなければ、一つ前のtagからパッチバージョンを1足して新しくtagをつける
-      - run: if [ "$(git describe --tags --exact-match 2> /dev/null)" = "" ]; then git tag "$(git describe --tags --abbrev=0 | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')"; fi
+      - if: steps.get_current_tag.outputs.current_tag == ""
+        run: git tag "$(git describe --tags --abbrev=0 | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')"
       # More assembly might be required: Docker logins, GPG, etc.
       # It all depends on your needs.
       - name: Run GoReleaser

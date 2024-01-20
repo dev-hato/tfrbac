@@ -23,7 +23,7 @@ jobs:
           go-version: stable
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: go mod tidy
-      - uses: dev-hato/actions-diff-pr-management@40e65038ab238f87b7b71c40f4d54d0d50760047 # v1.1.8
+      - uses: dev-hato/actions-diff-pr-management@5679ec25fa1bcedddc567859b30193a724bc968e # v1.1.9
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           branch-name-prefix: format

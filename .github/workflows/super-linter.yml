@@ -5,17 +5,26 @@ on:
     branches: [main]
   merge_group:
   workflow_dispatch:
+permissions:
+  contents: read
+  packages: read
+  statuses: write
 jobs:
   super-linter:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
       - name: Super-Linter
-        uses: super-linter/super-linter/slim@v5.7.2
+        uses: super-linter/super-linter/slim@v6.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: main
           LINTER_RULES_PATH: .
+          # Go modulesを使っているため、こちらはfalseにする
+          VALIDATE_GO: false
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true

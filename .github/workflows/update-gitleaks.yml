@@ -20,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
-      - uses: dev-hato/actions-update-gitleaks@5d751c45e8c72cfaf615f1b999de87096c525cd5 # v0.0.66
+      - uses: dev-hato/actions-update-gitleaks@71318b821cd4661d7c7bd0e19e21f950efe9e73a # v0.0.67
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
 concurrency:

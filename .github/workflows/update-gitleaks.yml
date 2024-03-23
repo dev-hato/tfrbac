@@ -15,12 +15,12 @@ jobs:
   update-gitleaks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         if: github.event_name != 'pull_request' || github.event.action != 'closed'
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
-      - uses: dev-hato/actions-update-gitleaks@71318b821cd4661d7c7bd0e19e21f950efe9e73a # v0.0.67
+      - uses: dev-hato/actions-update-gitleaks@34f266de641d346891e8f15ddae1e0a774583e98 # v0.0.68
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
 concurrency:

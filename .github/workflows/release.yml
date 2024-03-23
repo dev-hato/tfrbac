@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           fetch-depth: 0
       - name: Set up Go
@@ -27,7 +27,7 @@ jobs:
         run: git tag "$(git describe --tags --abbrev=0 | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')"
       - name: Generate a token
         id: generate_token
-        uses: actions/create-github-app-token@v1.8.0
+        uses: actions/create-github-app-token@f2acddfb5195534d487896a656232b016a682f3c # v1.9.0
         with:
           app-id: ${{ secrets.PROJECT_AUTOMATION_APP_ID }}
           private-key: ${{ secrets.PROJECT_AUTOMATION_PRIVATE_KEY }}

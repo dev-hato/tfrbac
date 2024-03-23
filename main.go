@@ -12,6 +12,10 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
+func getRefactoringBlocks() []string {
+	return []string{"moved", "import", "removed"}
+}
+
 func main() {
 	const terraformDir = "./" //TODO: あとで引数で弄れるようにしたい
 
@@ -37,7 +41,7 @@ func main() {
 
 		body := file.Body()
 		for _, v := range body.Blocks() {
-			if slices.Contains([]string{"moved", "import"}, v.Type()) {
+			if slices.Contains(getRefactoringBlocks(), v.Type()) {
 				body.RemoveBlock(v)
 			}
 		}

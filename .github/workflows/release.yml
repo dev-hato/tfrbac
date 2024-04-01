@@ -27,7 +27,7 @@ jobs:
         run: git tag "$(git tag --merged main --sort -v:refname | head -n 1 | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')"
       - name: Generate a token
         id: generate_token
-        uses: actions/create-github-app-token@78e5f2ddc08efcb88fbbee6cfa3fed770ba550c3 # v1.9.1
+        uses: actions/create-github-app-token@6c406e8a244fdf6bbf79e6cc8a91504a48d2c2ce # v1.9.2
         with:
           app-id: ${{ secrets.PROJECT_AUTOMATION_APP_ID }}
           private-key: ${{ secrets.PROJECT_AUTOMATION_PRIVATE_KEY }}

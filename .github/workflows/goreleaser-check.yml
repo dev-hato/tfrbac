@@ -1,4 +1,4 @@
-name: goreleaser check
+name: GoReleaser check
 on:
   pull_request:
   merge_group:

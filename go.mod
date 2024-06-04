@@ -2,7 +2,7 @@ module github.com/dev-hato/tfrbac
 
 go 1.21
 
-toolchain go1.22.3
+toolchain go1.22.4
 
 require (
 	github.com/cockroachdb/errors v1.11.3

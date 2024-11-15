@@ -6,7 +6,7 @@ toolchain go1.23.3
 
 require (
 	github.com/cockroachdb/errors v1.11.3
-	github.com/hashicorp/hcl/v2 v2.22.0
+	github.com/hashicorp/hcl/v2 v2.23.0
 )
 
 require (

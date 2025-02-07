@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"log"
 	"os"
 	"path/filepath"
@@ -40,12 +41,37 @@ func main() {
 		}
 
 		body := file.Body()
+		deleteTokens := make([]hclwrite.Tokens, 0)
 		for _, v := range body.Blocks() {
 			if slices.Contains(getRefactoringBlocks(), v.Type()) {
-				body.RemoveBlock(v)
+				deleteTokens = append(deleteTokens, v.BuildTokens(nil))
 			}
 		}
-		if err = os.WriteFile(filePath, file.Bytes(), info.Mode()); err != nil {
+		tokens := body.BuildTokens(nil)
+		ret := make(hclwrite.Tokens, 0, len(tokens))
+		for i := 0; i < len(tokens); i++ {
+			if len(deleteTokens) > 0 {
+				deleteToken := deleteTokens[0]
+				find := true
+				for j := 0; j < len(deleteToken) && i+j < len(tokens); j++ {
+					if deleteToken[j] != tokens[i+j] {
+						find = false
+						break
+					}
+				}
+				if find {
+					i += len(deleteToken) - 1
+					if i+1 < len(tokens) && tokens[i+1].Type == hclsyntax.TokenNewline {
+						i++
+					}
+					deleteTokens = deleteTokens[1:]
+					continue
+				}
+			}
+			ret = tokens[i : i+1].BuildTokens(ret)
+		}
+
+		if err = os.WriteFile(filePath, ret.Bytes(), info.Mode()); err != nil {
 			return errors.Wrap(err, "Error on os.WriteFile")
 		}
 

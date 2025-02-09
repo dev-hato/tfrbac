@@ -1,10 +1,11 @@
 package main
 
 import (
+	"testing"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_tfrbac(t *testing.T) {

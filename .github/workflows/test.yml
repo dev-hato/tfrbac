@@ -1,11 +1,6 @@
 name: test
 on:
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
     branches:
       - main
 jobs:
@@ -32,11 +27,5 @@ jobs:
             ${{ env.GO-CACHE-VERSION }}-go-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/go.sum') }}-${{ steps.go.outputs.go-version }}-${{ github.sha }}
             ${{ env.GO-CACHE-VERSION }}-go-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/go.sum') }}-${{ steps.go.outputs.go-version }}-
             ${{ env.GO-CACHE-VERSION }}-go-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/go.sum') }}-
-      - name: Ensure go.mod is tidied
-        run: go mod tidy
-      - uses: dev-hato/actions-diff-pr-management@cc201e3df74a342983025c4e97b7216b4e77f9f1 # v2.0.0
-        with:
-          github-token: ${{ steps.get-token.outputs.token }}
-          branch-name-prefix: fix-go-mod
       - name: go test
         run: go test -v ./...

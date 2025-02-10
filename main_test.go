@@ -90,7 +90,7 @@ moved {
 				require.Fail(t, diags.Error())
 			}
 			actual := tfrbac(file.Body())
-			require.Equal(t, tt.expected, actual.Bytes())
+			require.Equal(t, string(tt.expected), string(actual.Bytes()))
 		})
 	}
 }

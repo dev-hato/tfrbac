@@ -79,9 +79,11 @@ func tfrbac(body *hclwrite.Body) hclwrite.Tokens {
 				endTokenPos := i
 				i += len(deleteToken) - 1
 				if i+1 < len(tokens) && tokens[i+1].Type == hclsyntax.TokenNewline {
-					i++
-				} else if endTokenPos-1 > 0 && tokens[endTokenPos-1].Type == hclsyntax.TokenNewline {
-					endTokenPos--
+					i++ // 後ろに改行がある場合はそれを削除
+				} else if endTokenPos-2 > startTokenPos &&
+					tokens[endTokenPos-1].Type == hclsyntax.TokenNewline &&
+					tokens[endTokenPos-2].Type == hclsyntax.TokenNewline {
+					endTokenPos-- // 後ろに改行はないけど、上に二つ以上改行がある場合、一つ削除
 				}
 				deleteTokens = deleteTokens[1:]
 

@@ -24,7 +24,7 @@ func Test_tfrbac(t *testing.T) {
 			},
 			expected: nil,
 		},
-		"simple-1": {
+		"simple-1-1": {
 			args: args{
 				input: []byte(
 					`
@@ -43,7 +43,25 @@ resource "AAA" "aaa" {
 }
 `),
 		},
-		"simple-2": {
+		"simple-1-2": {
+			args: args{
+				input: []byte(
+					`
+resource "AAA" "aaa" {
+}
+moved {
+  from = "xxx"
+  to = "yyy"
+}
+`),
+			},
+			expected: []byte(
+				`
+resource "AAA" "aaa" {
+}
+`),
+		},
+		"simple-2-1": {
 			args: args{
 				input: []byte(
 					`
@@ -52,6 +70,24 @@ moved {
   to = "yyy"
 }
 
+resource "AAA" "aaa" {
+}
+`),
+			},
+			expected: []byte(
+				`
+resource "AAA" "aaa" {
+}
+`),
+		},
+		"simple-2-2": {
+			args: args{
+				input: []byte(
+					`
+moved {
+  from = "xxx"
+  to = "yyy"
+}
 resource "AAA" "aaa" {
 }
 `),
@@ -71,6 +107,24 @@ moved {
   to = "yyy"
 }
 
+moved {
+  from = "XXX"
+  to = "YYY"
+}
+`),
+			},
+			expected: []byte(
+				`
+`),
+		},
+		"multiple-2": {
+			args: args{
+				input: []byte(
+					`
+moved {
+  from = "xxx"
+  to = "yyy"
+}
 moved {
   from = "XXX"
   to = "YYY"

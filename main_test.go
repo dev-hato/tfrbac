@@ -24,7 +24,7 @@ func Test_tfrbac(t *testing.T) {
 			},
 			expected: nil,
 		},
-		"simple-1": { // MEMO: これはもう一行削ってもいいかもしれない
+		"simple-1": {
 			args: args{
 				input: []byte(
 					`
@@ -37,10 +37,10 @@ moved {
 }
 `),
 			},
-			expected: []byte(`
+			expected: []byte(
+				`
 resource "AAA" "aaa" {
 }
-
 `),
 		},
 		"simple-2": {
@@ -56,7 +56,8 @@ resource "AAA" "aaa" {
 }
 `),
 			},
-			expected: []byte(`
+			expected: []byte(
+				`
 resource "AAA" "aaa" {
 }
 `),
@@ -76,7 +77,8 @@ moved {
 }
 `),
 			},
-			expected: []byte(`
+			expected: []byte(
+				`
 `),
 		},
 	}

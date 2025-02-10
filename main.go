@@ -64,6 +64,7 @@ func tfrbac(body *hclwrite.Body) hclwrite.Tokens {
 	}
 	tokens := body.BuildTokens(nil)
 	ret := make(hclwrite.Tokens, 0, len(tokens))
+	startTokenPos := 0
 	for i := 0; i < len(tokens); i++ {
 		if len(deleteTokens) > 0 {
 			deleteToken := deleteTokens[0]
@@ -75,15 +76,21 @@ func tfrbac(body *hclwrite.Body) hclwrite.Tokens {
 				}
 			}
 			if find {
+				endTokenPos := i
 				i += len(deleteToken) - 1
 				if i+1 < len(tokens) && tokens[i+1].Type == hclsyntax.TokenNewline {
 					i++
+				} else if endTokenPos-1 > 0 && tokens[endTokenPos-1].Type == hclsyntax.TokenNewline {
+					endTokenPos--
 				}
 				deleteTokens = deleteTokens[1:]
+
+				ret = tokens[startTokenPos:endTokenPos].BuildTokens(ret)
+				startTokenPos = i + 1
 				continue
 			}
 		}
-		ret = tokens[i : i+1].BuildTokens(ret)
 	}
+	ret = tokens[startTokenPos:].BuildTokens(ret)
 	return ret
 }

@@ -1,0 +1,33 @@
+name: test
+permissions:
+  contents: read
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Go
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+        with:
+          go-version-file: "go.mod"
+          cache: false
+          check-latest: true
+        id: go
+      - name: go cache restore
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ env.GO-CACHE-VERSION }}-go-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/go.sum') }}-${{ steps.go.outputs.go-version }}-${{ github.sha }}
+          restore-keys: |
+            ${{ env.GO-CACHE-VERSION }}-go-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/go.sum') }}-${{ steps.go.outputs.go-version }}-${{ github.sha }}
+            ${{ env.GO-CACHE-VERSION }}-go-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/go.sum') }}-${{ steps.go.outputs.go-version }}-
+            ${{ env.GO-CACHE-VERSION }}-go-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/go.sum') }}-
+      - name: go test
+        run: go test -v ./...

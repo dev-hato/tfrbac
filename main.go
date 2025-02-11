@@ -66,32 +66,34 @@ func tfrbac(body *hclwrite.Body) hclwrite.Tokens {
 	ret := make(hclwrite.Tokens, 0, len(tokens))
 	startTokenPos := 0
 	for i := 0; i < len(tokens); i++ {
-		if len(deleteTokens) > 0 {
-			deleteToken := deleteTokens[0]
-			find := true
-			for j := 0; j < len(deleteToken) && i+j < len(tokens); j++ {
-				if deleteToken[j] != tokens[i+j] {
-					find = false
-					break
-				}
-			}
-			if find {
-				endTokenPos := i
-				i += len(deleteToken) - 1
-				if i+1 < len(tokens) && tokens[i+1].Type == hclsyntax.TokenNewline {
-					i++ // 後ろに改行がある場合はそれを削除
-				} else if endTokenPos-2 > startTokenPos &&
-					tokens[endTokenPos-1].Type == hclsyntax.TokenNewline &&
-					tokens[endTokenPos-2].Type == hclsyntax.TokenNewline {
-					endTokenPos-- // 後ろに改行はないけど、上に二つ以上改行がある場合、一つ削除
-				}
-				deleteTokens = deleteTokens[1:]
-
-				ret = tokens[startTokenPos:endTokenPos].BuildTokens(ret)
-				startTokenPos = i + 1
-				continue
+		if len(deleteTokens) == 0 {
+			break
+		}
+		deleteToken := deleteTokens[0]
+		find := true
+		for j := 0; j < len(deleteToken) && i+j < len(tokens); j++ {
+			if deleteToken[j] != tokens[i+j] {
+				find = false
+				break
 			}
 		}
+		if !find {
+			continue
+		}
+
+		endTokenPos := i
+		i += len(deleteToken) - 1
+		if i+1 < len(tokens) && tokens[i+1].Type == hclsyntax.TokenNewline {
+			i++ // 後ろに改行がある場合はそれを削除
+		} else if endTokenPos-2 > startTokenPos &&
+			tokens[endTokenPos-1].Type == hclsyntax.TokenNewline &&
+			tokens[endTokenPos-2].Type == hclsyntax.TokenNewline {
+			endTokenPos-- // 後ろに改行はないけど、上に二つ以上改行がある場合、一つ削除
+		}
+		deleteTokens = deleteTokens[1:]
+
+		ret = tokens[startTokenPos:endTokenPos].BuildTokens(ret)
+		startTokenPos = i + 1
 	}
 	ret = tokens[startTokenPos:].BuildTokens(ret)
 	return ret

@@ -28,6 +28,7 @@ jobs:
           tag_name="$(yq '.jobs.super-linter.steps[-1].uses' .github/workflows/super-linter.yml | sed -e 's;/slim@.*;:slim;g')"
           tag_version="$(yq '.jobs.super-linter.steps[-1].uses | line_comment' .github/workflows/super-linter.yml)"
           version="$(docker run --rm --entrypoint '' "ghcr.io/${tag_name}-${tag_version}" /bin/sh -c "goreleaser -v | grep GitVersion | sed -e 's/GitVersion: *//g'")"
+          echo "$version"
           yq -i ".jobs.goreleaser.steps[-1].with.version=$version" .github/workflows/release.yml
       - uses: dev-hato/actions-diff-pr-management@cea263ca46759ebc8c812b8595be4df129761037 # v2.1.0
         with:

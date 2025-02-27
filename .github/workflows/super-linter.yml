@@ -18,8 +18,8 @@ jobs:
         with:
           fetch-depth: 0
       - run: |
-          tag_name="$(yq '.jobs.build.steps[-1].uses' .github/workflows/super-linter.yml | sed -e 's;/slim@.*;:slim;g')"
-          tag_version="$(yq '.jobs.build.steps[-1].uses | line_comment' .github/workflows/super-linter.yml)"
+          tag_name="$(yq '.jobs.super-linter.steps[-1].uses' .github/workflows/super-linter.yml | sed -e 's;/slim@.*;:slim;g')"
+          tag_version="$(yq '.jobs.super-linter.steps[-1].uses | line_comment' .github/workflows/super-linter.yml)"
           docker run --rm --entrypoint '' "ghcr.io/${tag_name}-${tag_version}" /bin/sh -c "goreleaser -v | grep GitVersion | sed -e 's/GitVersion: *//g'"
       - name: Super-Linter
         uses: super-linter/super-linter/slim@4e8a7c2bf106c4c766c816b35ec612638dc9b6b2 # v7.3.0

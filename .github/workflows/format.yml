@@ -15,9 +15,16 @@ jobs:
   format:
     runs-on: ubuntu-latest
     steps:
+      - name: Generate a token
+        id: generate_token
+        uses: actions/create-github-app-token@0d564482f06ca65fa9e77e2510873638c82206f2 # v1.11.5
+        with:
+          app-id: ${{ secrets.PROJECT_AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.PROJECT_AUTOMATION_PRIVATE_KEY }}
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         if: github.event_name != 'pull_request' || github.event.action != 'closed'
         with:
+          token: ${{steps.generate_token.outputs.token}}
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
@@ -34,7 +41,7 @@ jobs:
           yq -i ".jobs.goreleaser.steps[-1].with.version|=\"$version\"" .github/workflows/release.yml
       - uses: dev-hato/actions-diff-pr-management@cea263ca46759ebc8c812b8595be4df129761037 # v2.1.0
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{steps.generate_token.outputs.token}}
           branch-name-prefix: format
           pr-title-prefix: Format修正
 concurrency:

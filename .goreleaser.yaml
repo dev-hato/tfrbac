@@ -32,7 +32,7 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
-brews:
+homebrew_casks:
   - repository:
       owner: dev-hato
       name: homebrew-tap

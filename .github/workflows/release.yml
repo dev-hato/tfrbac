@@ -20,6 +20,7 @@ jobs:
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: stable
+          cache: false
       - name: Get current tag
         id: get_current_tag
         run: echo "current_tag=$(git describe --tags --exact-match 2> /dev/null)" >> "$GITHUB_OUTPUT"

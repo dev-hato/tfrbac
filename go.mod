@@ -5,7 +5,7 @@ go 1.23.6
 require (
 	github.com/cockroachdb/errors v1.12.0
 	github.com/hashicorp/hcl/v2 v2.24.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 )
 
 require (

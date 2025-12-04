@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 go mod tidy
 tag_name="$(yq '.jobs.super-linter.steps[-1].uses' .github/workflows/super-linter.yml | sed -e 's;/slim@.*;:slim;g')"

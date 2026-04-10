@@ -33,7 +33,7 @@ func run() (err error) {
 	}
 	defer func(root *os.Root) {
 		if closeErr := root.Close(); closeErr != nil {
-			err = errors.Join(err, errors.Wrap(closeErr, "Error on root.Close"))
+			err = errors.Join(err, errors.Wrap(closeErr, "Error on Close"))
 		}
 	}(root)
 
@@ -67,7 +67,7 @@ func run() (err error) {
 
 		wf, err := root.OpenFile(relPath, os.O_WRONLY|os.O_TRUNC, info.Mode())
 		if err != nil {
-			return errors.Wrap(err, "Error on root.OpenFile")
+			return errors.Wrap(err, "Error on OpenFile")
 		}
 		defer func(wf *os.File) {
 			if closeErr := wf.Close(); closeErr != nil {
@@ -76,7 +76,7 @@ func run() (err error) {
 		}(wf)
 
 		if _, err = wf.Write(ret.Bytes()); err != nil {
-			return errors.Wrap(err, "Error on wf.Write")
+			return errors.Wrap(err, "Error on Write")
 		}
 
 		return nil
@@ -92,7 +92,7 @@ func run() (err error) {
 func readTFFile(root *os.Root, relPath string) (src []byte, err error) {
 	rf, err := root.Open(relPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error on root.Open")
+		return nil, errors.Wrap(err, "Error on Open")
 	}
 	defer func(rf *os.File) {
 		if closeErr := rf.Close(); closeErr != nil {

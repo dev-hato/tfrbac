@@ -19,15 +19,21 @@ func getRefactoringBlocks() []string {
 }
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatalf("Error on run: %+v\n", err)
+	}
+}
+
+func run() (err error) {
 	const terraformDir = "./" //TODO: あとで引数で弄れるようにしたい
 
 	root, err := os.OpenRoot(terraformDir)
 	if err != nil {
-		log.Fatalf("Error on os.OpenRoot: %+v\n", err)
+		return errors.Wrap(err, "Error on os.OpenRoot")
 	}
 	defer func(root *os.Root) {
-		if err := root.Close(); err != nil {
-			log.Fatalf("Error on Close: %+v\n", err)
+		if closeErr := root.Close(); closeErr != nil {
+			err = errors.Join(err, errors.Wrap(closeErr, "Error on root.Close"))
 		}
 	}(root)
 
@@ -77,8 +83,10 @@ func main() {
 	})
 
 	if err != nil {
-		log.Fatalf("Error walking through Terraform directory: %+v\n", err)
+		return errors.Wrap(err, "Error walking through Terraform directory")
 	}
+
+	return nil
 }
 
 func readTFFile(root *os.Root, relPath string) (src []byte, err error) {

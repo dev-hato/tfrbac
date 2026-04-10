@@ -1,6 +1,6 @@
 module github.com/dev-hato/tfrbac
 
-go 1.23.6
+go 1.24
 
 require (
 	github.com/cockroachdb/errors v1.12.0

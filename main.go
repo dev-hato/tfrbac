@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -18,11 +19,27 @@ func getRefactoringBlocks() []string {
 }
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatalf("Error on run: %+v\n", err)
+	}
+}
+
+func run() (err error) {
 	const terraformDir = "./" //TODO: あとで引数で弄れるようにしたい
 
-	err := filepath.Walk(terraformDir, func(filePath string, info os.FileInfo, err error) error {
-		if err != nil {
-			return errors.Wrap(err, "Error on filepath.Walk")
+	root, err := os.OpenRoot(terraformDir)
+	if err != nil {
+		return errors.Wrap(err, "Error on os.OpenRoot")
+	}
+	defer func(root *os.Root) {
+		if closeErr := root.Close(); closeErr != nil {
+			err = errors.Join(err, errors.Wrap(closeErr, "Error on Close"))
+		}
+	}(root)
+
+	err = filepath.Walk(terraformDir, func(filePath string, info os.FileInfo, walkErr error) (err error) {
+		if walkErr != nil {
+			return errors.Wrap(walkErr, "Error on filepath.Walk")
 		}
 
 		// '.tf' 拡張子でなければスキップ
@@ -30,9 +47,14 @@ func main() {
 			return nil
 		}
 
-		src, err := os.ReadFile(filePath)
+		relPath, err := filepath.Rel(terraformDir, filePath)
 		if err != nil {
-			return errors.Wrap(err, "Error on os.ReadFile")
+			return errors.Wrap(err, "Error on filepath.Rel")
+		}
+
+		src, err := readTFFile(root, relPath)
+		if err != nil {
+			return errors.Wrap(err, "Error on readTFFile")
 		}
 
 		file, diags := hclwrite.ParseConfig(src, filePath, hcl.InitialPos)
@@ -43,16 +65,47 @@ func main() {
 		body := file.Body()
 		ret := tfrbac(body)
 
-		if err = os.WriteFile(filePath, ret.Bytes(), info.Mode()); err != nil {
-			return errors.Wrap(err, "Error on os.WriteFile")
+		wf, err := root.OpenFile(relPath, os.O_WRONLY|os.O_TRUNC, info.Mode())
+		if err != nil {
+			return errors.Wrap(err, "Error on OpenFile")
+		}
+		defer func(wf *os.File) {
+			if closeErr := wf.Close(); closeErr != nil {
+				err = errors.Join(err, errors.Wrap(closeErr, "Error on Close"))
+			}
+		}(wf)
+
+		if _, err = wf.Write(ret.Bytes()); err != nil {
+			return errors.Wrap(err, "Error on Write")
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		log.Fatalf("Error walking through Terraform directory: %+v\n", err)
+		return errors.Wrap(err, "Error walking through Terraform directory")
 	}
+
+	return nil
+}
+
+func readTFFile(root *os.Root, relPath string) (src []byte, err error) {
+	rf, err := root.Open(relPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error on Open")
+	}
+	defer func(rf *os.File) {
+		if closeErr := rf.Close(); closeErr != nil {
+			err = errors.Join(err, errors.Wrap(closeErr, "Error on Close"))
+		}
+	}(rf)
+
+	src, err = io.ReadAll(rf)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error on io.ReadAll")
+	}
+
+	return src, nil
 }
 
 func tfrbac(body *hclwrite.Body) hclwrite.Tokens {

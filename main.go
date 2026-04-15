@@ -65,7 +65,7 @@ func run() (err error) {
 		body := file.Body()
 		ret := tfrbac(body)
 
-		wf, err := root.OpenFile(relPath, os.O_WRONLY|os.O_TRUNC, info.Mode())
+		wf, err := root.OpenFile(relPath, os.O_WRONLY|os.O_TRUNC, info.Mode().Perm())
 		if err != nil {
 			return errors.Wrap(err, "Error on OpenFile")
 		}

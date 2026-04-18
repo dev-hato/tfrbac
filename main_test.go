@@ -64,7 +64,7 @@ moved {
 }
 `),
 			},
-			setup: func(tmpDir string, filename string) {},
+			setup: func(_ string, _ string) {},
 			expected: []byte(
 				`
 resource "AAA" "aaa" {
@@ -101,7 +101,7 @@ resource "AAA" "aaa" {
 resource "AAA" "aaa" {
 }`),
 			},
-			setup: func(tmpDir string, filename string) {},
+			setup: func(_ string, _ string) {},
 			expected: []byte(`
 resource "AAA" "aaa" {
 }`),

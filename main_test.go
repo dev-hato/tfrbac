@@ -35,9 +35,7 @@ resource "AAA" "aaa" {
 	}(root)
 
 	got, err := readTFFile(root, filename)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	require.Equal(t, input, got)
 }
@@ -135,9 +133,8 @@ resource "AAA" "aaa" {
 				}
 			})
 
-			if err = run(); err != nil {
-				t.Fatal(err)
-			}
+			err = run()
+			require.NoError(t, err)
 
 			got, err := os.ReadFile(filePath)
 			if err != nil {

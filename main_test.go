@@ -42,11 +42,25 @@ resource "AAA" "aaa" {
 
 func Test_run(t *testing.T) {
 	type args struct {
-		input []byte
+		input      []byte
+		workingDir string // 実行ディレクトリ (空文字 = tmpDir)
 	}
+
+	symlinkSetup := func(tmpDir string, dirName string, filename string) {
+		symLinkDir := filepath.Join(tmpDir, "sym-link-dir")
+
+		if err := os.Mkdir(symLinkDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := os.Symlink(filepath.Join("..", dirName, filename), filepath.Join(symLinkDir, filename)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	tests := map[string]struct {
 		args     args
-		setup    func(tmpDir string, filename string)
+		setup    func(tmpDir string, dirName string, filename string)
 		expected []byte
 	}{
 		"resource-with-moved-block": {
@@ -62,14 +76,14 @@ moved {
 }
 `),
 			},
-			setup: func(_ string, _ string) {},
+			setup: func(_ string, _ string, _ string) {},
 			expected: []byte(
 				`
 resource "AAA" "aaa" {
 }
 `),
 		},
-		"resource-with-moved-block-symlink-target": {
+		"resource-with-moved-block-symlink-cross-dir-from-tmpdir": {
 			args: args{
 				input: []byte(
 					`
@@ -81,11 +95,44 @@ moved {
   to = "yyy"
 }`),
 			},
-			setup: func(tmpDir string, filename string) {
-				if err := os.Symlink(filename, filepath.Join(tmpDir, "link_"+filename)); err != nil {
-					t.Fatal(err)
-				}
+			setup: symlinkSetup,
+			expected: []byte(
+				`
+resource "AAA" "aaa" {
+}
+`),
+		},
+		"resource-with-moved-block-symlink-cross-dir-from-sym-link-dir": {
+			args: args{
+				input: []byte(
+					`
+resource "AAA" "aaa" {
+}
+
+moved {
+  from = "xxx"
+  to = "yyy"
+}
+`),
+				workingDir: "sym-link-dir",
 			},
+			setup: symlinkSetup,
+		},
+		"resource-with-moved-block-symlink-cross-dir-from-main-dir": {
+			args: args{
+				input: []byte(
+					`
+resource "AAA" "aaa" {
+}
+
+moved {
+  from = "xxx"
+  to = "yyy"
+}
+`),
+				workingDir: "main-dir",
+			},
+			setup: symlinkSetup,
 			expected: []byte(
 				`
 resource "AAA" "aaa" {
@@ -99,7 +146,7 @@ resource "AAA" "aaa" {
 resource "AAA" "aaa" {
 }`),
 			},
-			setup: func(_ string, _ string) {},
+			setup: func(_ string, _ string, _ string) {},
 			expected: []byte(`
 resource "AAA" "aaa" {
 }`),
@@ -110,20 +157,33 @@ resource "AAA" "aaa" {
 		t.Run(name, func(t *testing.T) {
 			filename := name + ".tf"
 			tmpDir := t.TempDir()
-			filePath := filepath.Join(tmpDir, filename)
+			dirName := "main-dir"
+			fileDir := filepath.Join(tmpDir, dirName)
+
+			if err := os.Mkdir(fileDir, 0755); err != nil {
+				t.Fatal(err)
+			}
+
+			filePath := filepath.Join(fileDir, filename)
 
 			if err := os.WriteFile(filePath, tt.args.input, 0644); err != nil {
 				t.Fatal(err)
 			}
 
-			tt.setup(tmpDir, filename)
+			tt.setup(tmpDir, dirName, filename)
 
 			origDir, err := os.Getwd()
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if err = os.Chdir(tmpDir); err != nil {
+			workingDir := tmpDir
+
+			if tt.args.workingDir != "" {
+				workingDir = filepath.Join(workingDir, tt.args.workingDir)
+			}
+
+			if err = os.Chdir(workingDir); err != nil {
 				t.Fatal(err)
 			}
 

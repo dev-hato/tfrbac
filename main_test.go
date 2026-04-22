@@ -25,9 +25,9 @@ resource "AAA" "aaa" {
 
 	root, err := os.OpenRoot(tmpDir)
 	require.NoError(t, err)
-	defer func(root *os.Root) {
+	t.Cleanup(func() {
 		require.NoError(t, root.Close())
-	}(root)
+	})
 
 	got, err := readTFFile(root, filename)
 	require.NoError(t, err)

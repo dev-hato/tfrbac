@@ -20,14 +20,11 @@ resource "AAA" "aaa" {
 }`)
 	tmpDir := t.TempDir()
 
-	if err := os.WriteFile(filepath.Join(tmpDir, filename), input, 0644); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(filepath.Join(tmpDir, filename), input, 0644)
+	require.NoError(t, err)
 
 	root, err := os.OpenRoot(tmpDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer func(root *os.Root) {
 		if closeErr := root.Close(); closeErr != nil {
 			t.Fatal(closeErr)
@@ -85,13 +82,11 @@ moved {
 			setup: func(tmpDir string, dirName string, filename string) {
 				symLinkDir := filepath.Join(tmpDir, "sym-link-dir")
 
-				if err := os.Mkdir(symLinkDir, 0755); err != nil {
-					t.Fatal(err)
-				}
+				err := os.Mkdir(symLinkDir, 0755)
+				require.NoError(t, err)
 
-				if err := os.Symlink(filepath.Join("..", dirName, filename), filepath.Join(symLinkDir, filename)); err != nil {
-					t.Fatal(err)
-				}
+				err = os.Symlink(filepath.Join("..", dirName, filename), filepath.Join(symLinkDir, filename))
+				require.NoError(t, err)
 			},
 			expected: []byte(
 				`
@@ -120,26 +115,21 @@ resource "AAA" "aaa" {
 			dirName := "main-dir"
 			fileDir := filepath.Join(tmpDir, dirName)
 
-			if err := os.Mkdir(fileDir, 0755); err != nil {
-				t.Fatal(err)
-			}
+			err := os.Mkdir(fileDir, 0755)
+			require.NoError(t, err)
 
 			filePath := filepath.Join(fileDir, filename)
 
-			if err := os.WriteFile(filePath, tt.args.input, 0644); err != nil {
-				t.Fatal(err)
-			}
+			err = os.WriteFile(filePath, tt.args.input, 0644)
+			require.NoError(t, err)
 
 			tt.setup(tmpDir, dirName, filename)
 
 			origDir, err := os.Getwd()
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
-			if err = os.Chdir(tmpDir); err != nil {
-				t.Fatal(err)
-			}
+			err = os.Chdir(tmpDir)
+			require.NoError(t, err)
 
 			t.Cleanup(func() {
 				if chErr := os.Chdir(origDir); chErr != nil {
@@ -151,9 +141,7 @@ resource "AAA" "aaa" {
 			require.NoError(t, err)
 
 			got, err := os.ReadFile(filePath)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			require.Equal(t, string(tt.expected), string(got))
 		})

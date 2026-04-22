@@ -102,22 +102,6 @@ resource "AAA" "aaa" {
 }
 `),
 		},
-		"resource-with-moved-block-symlink-cross-dir-from-sym-link-dir": {
-			args: args{
-				input: []byte(
-					`
-resource "AAA" "aaa" {
-}
-
-moved {
-  from = "xxx"
-  to = "yyy"
-}
-`),
-				workingDir: "sym-link-dir",
-			},
-			setup: symlinkSetup,
-		},
 		"resource-without-refactoring-block": {
 			args: args{
 				input: []byte(

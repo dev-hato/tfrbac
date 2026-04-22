@@ -42,20 +42,7 @@ resource "AAA" "aaa" {
 
 func Test_run(t *testing.T) {
 	type args struct {
-		input      []byte
-		workingDir string // 実行ディレクトリ (空文字 = tmpDir)
-	}
-
-	symlinkSetup := func(tmpDir string, dirName string, filename string) {
-		symLinkDir := filepath.Join(tmpDir, "sym-link-dir")
-
-		if err := os.Mkdir(symLinkDir, 0755); err != nil {
-			t.Fatal(err)
-		}
-
-		if err := os.Symlink(filepath.Join("..", dirName, filename), filepath.Join(symLinkDir, filename)); err != nil {
-			t.Fatal(err)
-		}
+		input []byte
 	}
 
 	tests := map[string]struct {
@@ -95,7 +82,17 @@ moved {
   to = "yyy"
 }`),
 			},
-			setup: symlinkSetup,
+			setup: func(tmpDir string, dirName string, filename string) {
+				symLinkDir := filepath.Join(tmpDir, "sym-link-dir")
+
+				if err := os.Mkdir(symLinkDir, 0755); err != nil {
+					t.Fatal(err)
+				}
+
+				if err := os.Symlink(filepath.Join("..", dirName, filename), filepath.Join(symLinkDir, filename)); err != nil {
+					t.Fatal(err)
+				}
+			},
 			expected: []byte(
 				`
 resource "AAA" "aaa" {
@@ -140,13 +137,7 @@ resource "AAA" "aaa" {
 				t.Fatal(err)
 			}
 
-			workingDir := tmpDir
-
-			if tt.args.workingDir != "" {
-				workingDir = filepath.Join(workingDir, tt.args.workingDir)
-			}
-
-			if err = os.Chdir(workingDir); err != nil {
+			if err = os.Chdir(tmpDir); err != nil {
 				t.Fatal(err)
 			}
 

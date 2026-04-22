@@ -26,9 +26,7 @@ resource "AAA" "aaa" {
 	root, err := os.OpenRoot(tmpDir)
 	require.NoError(t, err)
 	defer func(root *os.Root) {
-		if closeErr := root.Close(); closeErr != nil {
-			t.Fatal(closeErr)
-		}
+		require.NoError(t, root.Close())
 	}(root)
 
 	got, err := readTFFile(root, filename)
@@ -132,9 +130,7 @@ resource "AAA" "aaa" {
 			require.NoError(t, err)
 
 			t.Cleanup(func() {
-				if chErr := os.Chdir(origDir); chErr != nil {
-					t.Fatal(chErr)
-				}
+				require.NoError(t, os.Chdir(origDir))
 			})
 
 			err = run()

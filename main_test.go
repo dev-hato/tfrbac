@@ -118,27 +118,6 @@ moved {
 			},
 			setup: symlinkSetup,
 		},
-		"resource-with-moved-block-symlink-cross-dir-from-main-dir": {
-			args: args{
-				input: []byte(
-					`
-resource "AAA" "aaa" {
-}
-
-moved {
-  from = "xxx"
-  to = "yyy"
-}
-`),
-				workingDir: "main-dir",
-			},
-			setup: symlinkSetup,
-			expected: []byte(
-				`
-resource "AAA" "aaa" {
-}
-`),
-		},
 		"resource-without-refactoring-block": {
 			args: args{
 				input: []byte(

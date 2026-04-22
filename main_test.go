@@ -176,6 +176,114 @@ func Test_tfrbac(t *testing.T) {
 			},
 			expected: nil,
 		},
+		"resource-without-refactoring-block": {
+			args: args{
+				input: []byte(
+					`
+resource "AAA" "aaa" {
+}
+`),
+			},
+			expected: []byte(
+				`
+resource "AAA" "aaa" {
+}
+`),
+		},
+		"import-block": {
+			args: args{
+				input: []byte(
+					`
+resource "aws_instance" "example" {
+}
+
+import {
+  to = aws_instance.example
+  id = "i-abcd1234"
+}
+`),
+			},
+			expected: []byte(
+				`
+resource "aws_instance" "example" {
+}
+`),
+		},
+		"removed-block": {
+			args: args{
+				input: []byte(
+					`
+removed {
+  from = aws_instance.example
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+resource "aws_instance" "example" {
+}
+`),
+			},
+			expected: []byte(
+				`
+resource "aws_instance" "example" {
+}
+`),
+		},
+		"multiple-import-blocks": {
+			args: args{
+				input: []byte(
+					`
+import {
+  to = aws_instance.example
+  id = "i-abcd1234"
+}
+
+import {
+  to = aws_s3_bucket.example
+  id = "example"
+}
+`),
+			},
+			expected: []byte(
+				`
+`),
+		},
+		"mixed-refactoring-blocks-between-resources": {
+			args: args{
+				input: []byte(
+					`
+resource "aws_instance" "before" {
+}
+
+import {
+  to = aws_instance.example
+  id = "i-abcd1234"
+}
+
+removed {
+  from = aws_instance.old
+}
+
+moved {
+  from = aws_instance.old_name
+  to   = aws_instance.new_name
+}
+
+resource "aws_instance" "after" {
+}
+`),
+			},
+			expected: []byte(
+				`
+resource "aws_instance" "before" {
+}
+
+resource "aws_instance" "after" {
+}
+`),
+		},
 		"simple-1-1": {
 			args: args{
 				input: []byte(

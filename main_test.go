@@ -1,14 +1,41 @@
 package main
 
 import (
+	"bytes"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/stretchr/testify/require"
 )
+
+func Test_parseConfig(t *testing.T) {
+	t.Parallel()
+
+	cfg, showVersion, err := parseConfig(
+		[]string{"--check", "--dry-run", "--exclude", ".cache", "terraform", "main.tf"},
+		io.Discard,
+	)
+	require.NoError(t, err)
+	require.False(t, showVersion)
+	require.True(t, cfg.check)
+	require.True(t, cfg.dryRun)
+	require.Equal(t, []string{".git", ".terraform", ".terragrunt-cache", ".cache"}, cfg.excludeDirs)
+	require.Equal(t, []string{"terraform", "main.tf"}, cfg.targets)
+}
+
+func Test_parseConfig_DefaultTarget(t *testing.T) {
+	t.Parallel()
+
+	cfg, showVersion, err := parseConfig([]string{"--version"}, io.Discard)
+	require.NoError(t, err)
+	require.True(t, showVersion)
+	require.Equal(t, []string{"."}, cfg.targets)
+}
 
 func Test_readTFFile(t *testing.T) {
 	t.Parallel()
@@ -20,7 +47,7 @@ resource "AAA" "aaa" {
 }`)
 	tmpDir := t.TempDir()
 
-	err := os.WriteFile(filepath.Join(tmpDir, filename), input, 0644)
+	err := os.WriteFile(filepath.Join(tmpDir, filename), input, 0o644)
 	require.NoError(t, err)
 
 	root, err := os.OpenRoot(tmpDir)
@@ -36,19 +63,19 @@ resource "AAA" "aaa" {
 }
 
 func Test_run(t *testing.T) {
-	type args struct {
-		input []byte
-	}
-
 	tests := map[string]struct {
-		args     args
-		setup    func(tmpDir string, dirName string, filename string)
-		expected []byte
+		targetPath func(tmpDir string, filePath string) string
+		setup      func(tmpDir string, dirName string, filename string)
+		input      []byte
+		expected   []byte
 	}{
-		"resource-with-moved-block": {
-			args: args{
-				input: []byte(
-					`
+		"directory-target": {
+			targetPath: func(tmpDir string, _ string) string {
+				return tmpDir
+			},
+			setup: func(_ string, _ string, _ string) {},
+			input: []byte(
+				`
 resource "AAA" "aaa" {
 }
 
@@ -57,52 +84,59 @@ moved {
   to = "yyy"
 }
 `),
-			},
-			setup: func(_ string, _ string, _ string) {},
 			expected: []byte(
 				`
 resource "AAA" "aaa" {
 }
 `),
 		},
-		"resource-with-moved-block-symlink-cross-dir-from-tmpdir": {
-			args: args{
-				input: []byte(
-					`
+		"single-file-target": {
+			targetPath: func(_ string, filePath string) string {
+				return filePath
+			},
+			setup: func(_ string, _ string, _ string) {},
+			input: []byte(
+				`
 resource "AAA" "aaa" {
 }
 
-moved {
-  from = "xxx"
-  to = "yyy"
-}`),
+removed {
+  from = aws_instance.example
+}
+`),
+			expected: []byte(
+				`
+resource "AAA" "aaa" {
+}
+`),
+		},
+		"symlink-cross-dir-from-tmpdir": {
+			targetPath: func(tmpDir string, _ string) string {
+				return tmpDir
 			},
 			setup: func(tmpDir string, dirName string, filename string) {
 				symLinkDir := filepath.Join(tmpDir, "sym-link-dir")
 
-				err := os.Mkdir(symLinkDir, 0755)
+				err := os.Mkdir(symLinkDir, 0o755)
 				require.NoError(t, err)
 
 				err = os.Symlink(filepath.Join("..", dirName, filename), filepath.Join(symLinkDir, filename))
 				require.NoError(t, err)
 			},
+			input: []byte(
+				`
+resource "AAA" "aaa" {
+}
+
+moved {
+  from = "xxx"
+  to = "yyy"
+}`),
 			expected: []byte(
 				`
 resource "AAA" "aaa" {
 }
 `),
-		},
-		"resource-without-refactoring-block": {
-			args: args{
-				input: []byte(
-					`
-resource "AAA" "aaa" {
-}`),
-			},
-			setup: func(_ string, _ string, _ string) {},
-			expected: []byte(`
-resource "AAA" "aaa" {
-}`),
 		},
 	}
 
@@ -113,27 +147,20 @@ resource "AAA" "aaa" {
 			dirName := "main-dir"
 			fileDir := filepath.Join(tmpDir, dirName)
 
-			err := os.Mkdir(fileDir, 0755)
+			err := os.Mkdir(fileDir, 0o755)
 			require.NoError(t, err)
 
 			filePath := filepath.Join(fileDir, filename)
 
-			err = os.WriteFile(filePath, tt.args.input, 0644)
+			err = os.WriteFile(filePath, tt.input, 0o644)
 			require.NoError(t, err)
 
 			tt.setup(tmpDir, dirName, filename)
 
-			origDir, err := os.Getwd()
-			require.NoError(t, err)
-
-			err = os.Chdir(tmpDir)
-			require.NoError(t, err)
-
-			t.Cleanup(func() {
-				require.NoError(t, os.Chdir(origDir))
+			err = run(config{
+				targets: []string{tt.targetPath(tmpDir, filePath)},
+				stdout:  io.Discard,
 			})
-
-			err = run()
 			require.NoError(t, err)
 
 			got, err := os.ReadFile(filePath)
@@ -142,6 +169,112 @@ resource "AAA" "aaa" {
 			require.Equal(t, string(tt.expected), string(got))
 		})
 	}
+}
+
+func Test_run_SkipsDefaultExcludedDirs(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	includedPath := filepath.Join(tmpDir, "included.tf")
+	excludedPath := filepath.Join(tmpDir, ".terraform", "excluded.tf")
+
+	input := []byte(
+		`
+resource "AAA" "aaa" {
+}
+
+moved {
+  from = "xxx"
+  to = "yyy"
+}
+`)
+	expected := []byte(
+		`
+resource "AAA" "aaa" {
+}
+`)
+
+	require.NoError(t, os.MkdirAll(filepath.Dir(excludedPath), 0o755))
+	require.NoError(t, os.WriteFile(includedPath, input, 0o644))
+	require.NoError(t, os.WriteFile(excludedPath, input, 0o644))
+
+	err := run(config{
+		targets: []string{tmpDir},
+		stdout:  io.Discard,
+	})
+	require.NoError(t, err)
+
+	includedGot, err := os.ReadFile(includedPath)
+	require.NoError(t, err)
+	require.Equal(t, string(expected), string(includedGot))
+
+	excludedGot, err := os.ReadFile(excludedPath)
+	require.NoError(t, err)
+	require.Equal(t, string(input), string(excludedGot))
+}
+
+func Test_run_Check(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "main.tf")
+	input := []byte(
+		`
+resource "AAA" "aaa" {
+}
+
+moved {
+  from = "xxx"
+  to = "yyy"
+}
+`)
+	require.NoError(t, os.WriteFile(filePath, input, 0o644))
+
+	var stdout bytes.Buffer
+	err := run(config{
+		check:   true,
+		targets: []string{tmpDir},
+		stdout:  &stdout,
+	})
+	require.EqualError(t, err, "refactoring blocks found in 1 file(s)")
+	assertReportedAndUnchanged(t, stdout.String(), filePath, input)
+}
+
+func Test_run_DryRun(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "main.tf")
+	input := []byte(
+		`
+resource "AAA" "aaa" {
+}
+
+import {
+  to = aws_instance.example
+  id = "i-abcd1234"
+}
+`)
+	require.NoError(t, os.WriteFile(filePath, input, 0o644))
+
+	var stdout bytes.Buffer
+	err := run(config{
+		dryRun:  true,
+		targets: []string{tmpDir},
+		stdout:  &stdout,
+	})
+	require.NoError(t, err)
+	assertReportedAndUnchanged(t, stdout.String(), filePath, input)
+}
+
+func assertReportedAndUnchanged(t *testing.T, report string, filePath string, expectedContents []byte) {
+	t.Helper()
+
+	require.Contains(t, report, filePath)
+
+	got, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+	require.Equal(t, string(expectedContents), string(got))
 }
 
 func Test_tfrbac(t *testing.T) {
@@ -393,4 +526,13 @@ moved {
 			require.Equal(t, string(tt.expected), string(actual.Bytes()))
 		})
 	}
+}
+
+func Test_usage(t *testing.T) {
+	t.Parallel()
+
+	text := usage()
+	require.Contains(t, text, "--check")
+	require.Contains(t, text, "--dry-run")
+	require.Contains(t, text, strings.Join(defaultExcludedDirs, "\n  "))
 }

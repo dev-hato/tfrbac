@@ -86,7 +86,7 @@ func main() {
 	}
 }
 
-func parseConfig(args []string, stdout io.Writer) (cfg config, showVersion bool, err error) {
+func parseConfig(args []string, stdout io.Writer) (cfg config, showVersion bool, parseErr error) {
 	cfg = config{
 		excludeDirs: append([]string(nil), defaultExcludedDirs...),
 		stdout:      stdout,
@@ -162,14 +162,14 @@ func processTarget(target string, cfg config, excludedDirs map[string]struct{}, 
 	return processSingleFile(target, info.Mode().Perm(), cfg, processedPaths)
 }
 
-func processDirectory(target string, cfg config, excludedDirs map[string]struct{}, processedPaths map[string]struct{}) (changedFiles int, err error) {
+func processDirectory(target string, cfg config, excludedDirs map[string]struct{}, processedPaths map[string]struct{}) (changedFiles int, resultErr error) {
 	root, err := os.OpenRoot(target)
 	if err != nil {
 		return 0, errors.Wrap(err, "open root")
 	}
 	defer func() {
 		if closeErr := root.Close(); closeErr != nil {
-			err = errors.Join(err, errors.Wrap(closeErr, "close root"))
+			resultErr = errors.Join(resultErr, errors.Wrap(closeErr, "close root"))
 		}
 	}()
 
@@ -189,28 +189,28 @@ func processDirectory(target string, cfg config, excludedDirs map[string]struct{
 			return nil
 		}
 
-		pathKey, err := uniquePathKey(filePath)
-		if err != nil {
-			return err
+		pathKey, pathErr := uniquePathKey(filePath)
+		if pathErr != nil {
+			return pathErr
 		}
 		if _, exists := processedPaths[pathKey]; exists {
 			return nil
 		}
 		processedPaths[pathKey] = struct{}{}
 
-		relPath, err := filepath.Rel(target, filePath)
-		if err != nil {
-			return errors.Wrap(err, "build relative path")
+		relPath, relErr := filepath.Rel(target, filePath)
+		if relErr != nil {
+			return errors.Wrap(relErr, "build relative path")
 		}
 
-		info, err := entry.Info()
-		if err != nil {
-			return errors.Wrap(err, "read file info")
+		info, infoErr := entry.Info()
+		if infoErr != nil {
+			return errors.Wrap(infoErr, "read file info")
 		}
 
-		changed, err := processTFFile(root, relPath, filePath, info.Mode().Perm(), cfg)
-		if err != nil {
-			return err
+		changed, processErr := processTFFile(root, relPath, filePath, info.Mode().Perm(), cfg)
+		if processErr != nil {
+			return processErr
 		}
 		if changed {
 			changedFiles++
@@ -219,10 +219,11 @@ func processDirectory(target string, cfg config, excludedDirs map[string]struct{
 		return nil
 	})
 	if err != nil {
-		return 0, err
+		resultErr = errors.Join(resultErr, err)
+		return 0, resultErr
 	}
 
-	return changedFiles, nil
+	return changedFiles, resultErr
 }
 
 func processSingleFile(target string, perm fs.FileMode, cfg config, processedPaths map[string]struct{}) (changedFiles int, err error) {

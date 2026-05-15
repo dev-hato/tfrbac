@@ -237,11 +237,7 @@ moved {
 		stdout:  &stdout,
 	})
 	require.EqualError(t, err, "refactoring blocks found in 1 file(s)")
-	require.Contains(t, stdout.String(), filePath)
-
-	got, readErr := os.ReadFile(filePath)
-	require.NoError(t, readErr)
-	require.Equal(t, string(input), string(got))
+	assertReportedAndUnchanged(t, stdout.String(), filePath, input)
 }
 
 func Test_run_DryRun(t *testing.T) {
@@ -268,11 +264,17 @@ import {
 		stdout:  &stdout,
 	})
 	require.NoError(t, err)
-	require.Contains(t, stdout.String(), filePath)
+	assertReportedAndUnchanged(t, stdout.String(), filePath, input)
+}
 
-	got, readErr := os.ReadFile(filePath)
-	require.NoError(t, readErr)
-	require.Equal(t, string(input), string(got))
+func assertReportedAndUnchanged(t *testing.T, report string, filePath string, expectedContents []byte) {
+	t.Helper()
+
+	require.Contains(t, report, filePath)
+
+	got, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+	require.Equal(t, string(expectedContents), string(got))
 }
 
 func Test_tfrbac(t *testing.T) {

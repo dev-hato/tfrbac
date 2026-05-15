@@ -46,7 +46,9 @@ By default, `tfrbac` skips these directories while walking a directory target:
 
 `--check` is useful in CI, and `--dry-run` is useful before a bulk cleanup.
 
-`tfrbac` rewrites Terraform files in place. Run it after you have already applied the refactoring block change you intend to keep, and review the resulting diff before commit.
+`tfrbac` rewrites Terraform files in place. Run it after you have already
+applied the refactoring block change you intend to keep, and review the
+resulting diff before commit.
 
 ## Before / After
 

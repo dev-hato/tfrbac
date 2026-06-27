@@ -27,6 +27,7 @@ jobs:
       # tagがなければ、一つ前のtagからパッチバージョンを1足して新しくtagをつける
       - if: steps.get_current_tag.outputs.current_tag == ''
         run: git tag "$(git tag --merged main --sort -v:refname | head -n 1 | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')"
+      # jscpd:ignore-start
       - name: Generate a token
         id: generate_token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
@@ -35,6 +36,8 @@ jobs:
           private-key: ${{ secrets.PROJECT_AUTOMATION_PRIVATE_KEY }} # zizmor: ignore[secrets-outside-env]
           owner: ${{ github.repository_owner }}
           repositories: "homebrew-tap"
+          permission-contents: write
+      # jscpd:ignore-end
       # More assembly might be required: Docker logins, GPG, etc.
       # It all depends on your needs.
       - name: Run GoReleaser
@@ -42,7 +45,7 @@ jobs:
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser
-          version: v2.15.1
+          version: v2.16.0
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

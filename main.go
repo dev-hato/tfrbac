@@ -15,7 +15,7 @@ import (
 )
 
 func getRefactoringBlocks() []string {
-	return []string{"moved", "import", "removed"}
+	  return []string{"moved", "import", "removed"}
 }
 
 func main() {

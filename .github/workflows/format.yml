@@ -39,7 +39,7 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
           permission-workflows: write
-      - uses: dev-hato/actions-diff-pr-management@5cd3792bc98beed11cda90898bc81af6bfa199af # v2.2.5
+      - uses: dev-hato/actions-diff-pr-management@571be0d9572aaf77cdd315c12d6e73a1112910d7 # v2.2.6
         with:
           github-token: ${{steps.generate_token.outputs.token}}
           branch-name-prefix: format

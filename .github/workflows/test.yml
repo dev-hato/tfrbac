@@ -32,6 +32,6 @@ jobs:
             ${{ env.GO-CACHE-VERSION }}-go-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/go.sum') }}-${{ steps.go.outputs.go-version }}-${{ github.sha }}
             ${{ env.GO-CACHE-VERSION }}-go-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/go.sum') }}-${{ steps.go.outputs.go-version }}-
             ${{ env.GO-CACHE-VERSION }}-go-cache-${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/go.sum') }}-
-      - uses: flatt-security/setup-takumi-guard-golang@1c8aa7498f7f635fbd6ad6a0f436d03092b3502d # v1
+      - uses: flatt-security/setup-takumi-guard-golang@1c8aa7498f7f635fbd6ad6a0f436d03092b3502d # v1.1.0
       - name: go test
         run: go test -v ./...

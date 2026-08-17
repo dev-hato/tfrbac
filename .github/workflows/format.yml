@@ -28,7 +28,7 @@ jobs:
         with:
           go-version: stable
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
-        uses: flatt-security/setup-takumi-guard-golang@2e3c7c40b538cd68b2ac483def12982ebc8bc02e # v1
+        uses: flatt-security/setup-takumi-guard-golang@1c8aa7498f7f635fbd6ad6a0f436d03092b3502d # v1
       - if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: bash "${GITHUB_WORKSPACE}/scripts/format/format/format.sh"
       # jscpd:ignore-start

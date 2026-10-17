@@ -21,7 +21,7 @@ go test -v -run 'Test_tfrbac/<case>' .  # run a single table-driven case
 bash scripts/format/format/format.sh    # go mod tidy + go fix + go fmt + rulesync generate (CI auto-opens a "Format修正" PR if this produces a diff)
 ```
 
-Linting runs in CI via super-linter (`.github/workflows/super-linter.yml`); there is no local lint config.
+Linting runs in CI via super-linter (`.github/workflows/super-linter.yml`).
 
 ## Architecture
 

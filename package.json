@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "devDependencies": {
+    "rulesync": "37.1.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

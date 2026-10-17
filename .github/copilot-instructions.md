@@ -19,7 +19,11 @@ Linting runs in CI via super-linter (`.github/workflows/super-linter.yml`); ther
 All logic lives in `main.go` (package `main`):
 
 - `run()` walks `./` with `filepath.Walk`, but all file I/O goes through an `os.Root` opened on that directory (`os.OpenRoot`) so reads/writes cannot escape it (e.g. via symlinks). Paths are converted to root-relative with `filepath.Rel` before `root.Open`/`root.OpenFile`.
-- `tfrbac(body)` does the actual removal at the **token level**, not via `body.RemoveBlock`: it collects the tokens of each refactoring block, scans the file's token stream for those sequences, and splices them out. This preserves original formatting/comments and also handles blank-line cleanup (drops the trailing newline after a removed block, or one of two preceding newlines when there is no trailing newline). Changes to removal behavior almost always need matching cases in `Test_tfrbac`.
+- `tfrbac(body)` does the actual removal at the **token level**, not via `body.RemoveBlock`:
+  it collects the tokens of each refactoring block, scans the file's token stream for those sequences, and splices them out.
+  This preserves original formatting/comments and also handles blank-line cleanup
+  (drops the trailing newline after a removed block, or one of two preceding newlines when there is no trailing newline).
+  Changes to removal behavior almost always need matching cases in `Test_tfrbac`.
 - Errors are wrapped with `github.com/cockroachdb/errors` (`errors.Wrap(err, "Error on <call>")`), and deferred `Close` errors are merged into the named return with `errors.Join`. Follow this pattern.
 
 ## Tests

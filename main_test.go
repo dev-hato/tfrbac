@@ -3,7 +3,9 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
@@ -141,6 +143,189 @@ resource "AAA" "aaa" {
 
 			require.Equal(t, string(tt.expected), string(got))
 		})
+	}
+}
+
+// chdirForTest テスト中だけカレントディレクトリを移動する
+func chdirForTest(t *testing.T, dir string) {
+	t.Helper()
+
+	origDir, err := os.Getwd()
+	require.NoError(t, err)
+
+	require.NoError(t, os.Chdir(dir))
+	t.Cleanup(func() {
+		require.NoError(t, os.Chdir(origDir))
+	})
+}
+
+// requireDirEntryNames ディレクトリ内のファイル名が期待通りであることを確認する
+// (一時ファイルが残っていれば、そのファイル名が差分として表示される)
+func requireDirEntryNames(t *testing.T, dir string, expected []string) {
+	t.Helper()
+
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+
+	names := make([]string, 0, len(entries))
+
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+
+	require.Equal(t, expected, names)
+}
+
+const refactoringBlockInput = `
+resource "AAA" "aaa" {
+}
+
+moved {
+  from = "xxx"
+  to = "yyy"
+}
+`
+
+const refactoringBlockExpected = `
+resource "AAA" "aaa" {
+}
+`
+
+// Test_run_doesNotModifyFileOutsideDirViaSymlink ディレクトリ外の.tfファイルを指すシンボリックリンクがあっても、
+// エラーにならず、リンク先のファイルを書き換えないことを確認する
+func Test_run_doesNotModifyFileOutsideDirViaSymlink(t *testing.T) {
+	outsidePath := filepath.Join(t.TempDir(), "outside.tf")
+	require.NoError(t, os.WriteFile(outsidePath, []byte(refactoringBlockInput), 0644))
+
+	tmpDir := t.TempDir()
+	require.NoError(t, os.Symlink(outsidePath, filepath.Join(tmpDir, "link.tf")))
+
+	chdirForTest(t, tmpDir)
+	require.NoError(t, run())
+
+	got, err := os.ReadFile(outsidePath)
+	require.NoError(t, err)
+	require.Equal(t, refactoringBlockInput, string(got))
+}
+
+// Test_run_preservesPermissionAndLeavesNoTempFile リファクタリングブロックを削除した後も元のファイルの権限が保たれ、
+// 一時ファイルが残らないことを確認する
+func Test_run_preservesPermissionAndLeavesNoTempFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	fileName := "main.tf"
+	filePath := filepath.Join(tmpDir, fileName)
+	perm := os.FileMode(0600)
+	require.NoError(t, os.WriteFile(filePath, []byte(refactoringBlockInput), perm))
+	require.NoError(t, os.Chmod(filePath, perm))
+
+	chdirForTest(t, tmpDir)
+	require.NoError(t, run())
+
+	got, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+	require.Equal(t, refactoringBlockExpected, string(got))
+
+	info, err := os.Stat(filePath)
+	require.NoError(t, err)
+	require.Equal(t, perm, info.Mode().Perm())
+
+	requireDirEntryNames(t, tmpDir, []string{fileName})
+}
+
+// Test_run_doesNotWriteUnchangedFile リファクタリングブロックがないファイルは書き込まないため、
+// 書き込み権限のないファイルでもエラーにならないことを確認する
+func Test_run_doesNotWriteUnchangedFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "main.tf")
+	require.NoError(t, os.WriteFile(filePath, []byte(refactoringBlockExpected), 0444))
+
+	// 書き込みできないファイルでも、変更がなければ書き込まないためエラーにならない
+	chdirForTest(t, tmpDir)
+	require.NoError(t, run())
+
+	got, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+	require.Equal(t, refactoringBlockExpected, string(got))
+}
+
+// Test_run_keepsOriginalFileWhenWriteFails 書き込みに失敗した場合はエラーを返し、元のファイルを壊さないことを確認する
+func Test_run_keepsOriginalFileWhenWriteFails(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "main.tf")
+	require.NoError(t, os.WriteFile(filePath, []byte(refactoringBlockInput), 0644))
+
+	// ディレクトリを書き込み禁止にして、一時ファイルの作成を失敗させる
+	require.NoError(t, os.Chmod(tmpDir, 0555))
+	t.Cleanup(func() {
+		require.NoError(t, os.Chmod(tmpDir, 0755))
+	})
+
+	chdirForTest(t, tmpDir)
+	require.Error(t, run())
+
+	got, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+	require.Equal(t, refactoringBlockInput, string(got))
+}
+
+// Test_run_keepsOriginalFileWhenHCLIsInvalid 不正なHCLの場合はエラーを返し、元のファイルを壊さず、一時ファイルも作らないことを確認する
+func Test_run_keepsOriginalFileWhenHCLIsInvalid(t *testing.T) {
+	const invalidInput = `
+moved {
+  from = "xxx"
+`
+
+	tmpDir := t.TempDir()
+	fileName := "main.tf"
+	filePath := filepath.Join(tmpDir, fileName)
+	require.NoError(t, os.WriteFile(filePath, []byte(invalidInput), 0644))
+
+	chdirForTest(t, tmpDir)
+	require.Error(t, run())
+
+	got, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+	require.Equal(t, invalidInput, string(got))
+
+	requireDirEntryNames(t, tmpDir, []string{fileName})
+}
+
+// Test_run_doesNotFollowSymlinkDirOutsideDir ディレクトリ外を指すシンボリックリンクのディレクトリを辿らず、
+// その中の.tfファイルを書き換えないことを確認する
+func Test_run_doesNotFollowSymlinkDirOutsideDir(t *testing.T) {
+	outsideDir := t.TempDir()
+	outsidePath := filepath.Join(outsideDir, "outside.tf")
+	require.NoError(t, os.WriteFile(outsidePath, []byte(refactoringBlockInput), 0644))
+
+	tmpDir := t.TempDir()
+	require.NoError(t, os.Symlink(outsideDir, filepath.Join(tmpDir, "link-dir")))
+
+	chdirForTest(t, tmpDir)
+	require.NoError(t, run())
+
+	got, err := os.ReadFile(outsidePath)
+	require.NoError(t, err)
+	require.Equal(t, refactoringBlockInput, string(got))
+}
+
+// Test_run_skipsFIFO .tfという名前のFIFOがあっても、読み込みで止まらずに処理を終えることを確認する
+func Test_run_skipsFIFO(t *testing.T) {
+	tmpDir := t.TempDir()
+	require.NoError(t, syscall.Mkfifo(filepath.Join(tmpDir, "fifo.tf"), 0644))
+
+	chdirForTest(t, tmpDir)
+
+	// FIFOを読み込もうとすると書き込み側が現れるまで止まるため、時間内に終わることを確認する
+	done := make(chan error, 1)
+	go func() {
+		done <- run()
+	}()
+
+	select {
+	case err := <-done:
+		require.NoError(t, err)
+	case <-time.After(10 * time.Second):
+		t.Fatal("run() blocked on FIFO")
 	}
 }
 

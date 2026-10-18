@@ -71,7 +71,9 @@ Working correctly is not enough.
     Also keep `npm install --ignore-scripts` there.
 - Pin new external Actions to full commit SHAs.
   Avoid dependency versions that were published only very recently.
-- Add tests that confirm attack inputs do not change the result.
-  For example, symlinks pointing outside the directory, or crafted filenames.
+- When fixing a security issue, always write tests that confirm the issue no longer reproduces.
+  - Use the inputs an attacker would use, and confirm the fixed code skips or rejects them safely.
+    For example, symlinks pointing outside the directory, or crafted filenames.
+  - Confirm the tests fail against the code before the fix, so they actually detect the issue.
 - If a vulnerability is found during review, do not write the details in a public issue or PR.
   Report it privately first.

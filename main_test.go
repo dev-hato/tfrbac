@@ -191,21 +191,41 @@ resource "AAA" "aaa" {
 }
 `
 
-// Test_run_doesNotModifyFileOutsideDirViaSymlink ディレクトリ外の.tfファイルを指すシンボリックリンクがあっても、
-// エラーにならず、リンク先のファイルを書き換えないことを確認する
+// Test_run_doesNotModifyFileOutsideDirViaSymlink ディレクトリ外を指すシンボリックリンクがあっても、
+// エラーにならず、ディレクトリ外の.tfファイルを書き換えないことを確認する
+// (.tfファイルへのリンクは読み書きせず、ディレクトリへのリンクは辿らない)
 func Test_run_doesNotModifyFileOutsideDirViaSymlink(t *testing.T) {
-	outsidePath := filepath.Join(t.TempDir(), "outside.tf")
-	require.NoError(t, os.WriteFile(outsidePath, []byte(refactoringBlockInput), 0644))
+	tests := map[string]struct {
+		linkName   string
+		linkTarget func(outsideDir string, outsidePath string) string
+	}{
+		"symlink-to-file": {
+			linkName:   "link.tf",
+			linkTarget: func(_ string, outsidePath string) string { return outsidePath },
+		},
+		"symlink-to-dir": {
+			linkName:   "link-dir",
+			linkTarget: func(outsideDir string, _ string) string { return outsideDir },
+		},
+	}
 
-	tmpDir := t.TempDir()
-	require.NoError(t, os.Symlink(outsidePath, filepath.Join(tmpDir, "link.tf")))
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			outsideDir := t.TempDir()
+			outsidePath := filepath.Join(outsideDir, "outside.tf")
+			require.NoError(t, os.WriteFile(outsidePath, []byte(refactoringBlockInput), 0644))
 
-	chdirForTest(t, tmpDir)
-	require.NoError(t, run())
+			tmpDir := t.TempDir()
+			require.NoError(t, os.Symlink(tt.linkTarget(outsideDir, outsidePath), filepath.Join(tmpDir, tt.linkName)))
 
-	got, err := os.ReadFile(outsidePath)
-	require.NoError(t, err)
-	require.Equal(t, refactoringBlockInput, string(got))
+			chdirForTest(t, tmpDir)
+			require.NoError(t, run())
+
+			got, err := os.ReadFile(outsidePath)
+			require.NoError(t, err)
+			require.Equal(t, refactoringBlockInput, string(got))
+		})
+	}
 }
 
 // Test_run_preservesPermissionAndLeavesNoTempFile リファクタリングブロックを削除した後も元のファイルの権限が保たれ、
@@ -288,24 +308,6 @@ moved {
 	require.Equal(t, invalidInput, string(got))
 
 	requireDirEntryNames(t, tmpDir, []string{fileName})
-}
-
-// Test_run_doesNotFollowSymlinkDirOutsideDir ディレクトリ外を指すシンボリックリンクのディレクトリを辿らず、
-// その中の.tfファイルを書き換えないことを確認する
-func Test_run_doesNotFollowSymlinkDirOutsideDir(t *testing.T) {
-	outsideDir := t.TempDir()
-	outsidePath := filepath.Join(outsideDir, "outside.tf")
-	require.NoError(t, os.WriteFile(outsidePath, []byte(refactoringBlockInput), 0644))
-
-	tmpDir := t.TempDir()
-	require.NoError(t, os.Symlink(outsideDir, filepath.Join(tmpDir, "link-dir")))
-
-	chdirForTest(t, tmpDir)
-	require.NoError(t, run())
-
-	got, err := os.ReadFile(outsidePath)
-	require.NoError(t, err)
-	require.Equal(t, refactoringBlockInput, string(got))
 }
 
 // Test_run_skipsFIFO .tfという名前のFIFOがあっても、読み込みで止まらずに処理を終えることを確認する

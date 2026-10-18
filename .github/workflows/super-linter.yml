@@ -33,6 +33,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BRANCH: main
           LINTER_RULES_PATH: .
+          # set_path.shでworkspaceにnpm ciするため、サードパーティのコードはlint対象から除外する
+          # GO_MODULESはこのフィルターに関係なくモジュール全体をlintするため、.golangci.ymlでもnode_modulesを除外している
+          FILTER_REGEX_EXCLUDE: (^|/)node_modules/
           # Go modulesを使っているため、こちらはfalseにする
           VALIDATE_GO: false
           VALIDATE_GIT_COMMITLINT: false

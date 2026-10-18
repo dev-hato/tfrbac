@@ -1,0 +1,52 @@
+# https://github.com/super-linter/super-linter/blob/v9.0.0/TEMPLATES/.golangci.yml
+# Ref https://github.com/golangci/golangci-lint/blob/master/.golangci.reference.yml
+version: "2"
+linters:
+  enable:
+    - goconst
+    - gocritic
+    - gocyclo
+    - gosec
+    - govet
+    - revive
+    - unconvert
+  settings:
+    errcheck:
+      check-blank: true
+    gocyclo:
+      min-complexity: 15
+    govet:
+      enable:
+        - shadow
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - dupl
+          - goconst
+          - gosec
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      # node_modules/flattedはgo.modを持たないGoのソースを含み、
+      # このモジュールのパッケージとして扱われるため除外する
+      - node_modules/
+formatters:
+  enable:
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      # node_modules/flattedはgo.modを持たないGoのソースを含み、
+      # このモジュールのパッケージとして扱われるため除外する
+      - node_modules/

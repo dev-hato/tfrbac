@@ -16,7 +16,9 @@
     "ja-hiragana-fukushi": true,
     "ja-hiragana-hojodoushi": true,
     "ja-hiragana-keishikimeishi": true,
-    "no-dead-link": true,
+    "no-dead-link": {
+      "ignore": ["https://github.com/dev-hato/tfrbac/releases/latest"]
+    },
     "no-mixed-zenkaku-and-hankaku-alphabet": true,
     "prefer-tari-tari": true,
     "preset-ja-spacing": true,

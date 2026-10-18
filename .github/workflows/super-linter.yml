@@ -19,12 +19,21 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          cache: npm
+          node-version-file: package.json
+      - uses: flatt-security/setup-takumi-guard-npm@14f07d0cbc739b42a1b7c70a04c2b84cd1318ddd # v1.4.0
+      - run: bash "${GITHUB_WORKSPACE}/scripts/super_linter/super_linter/set_path.sh"
       - name: Super-Linter
         uses: super-linter/super-linter/slim@2da136927bd4a73596db63044b504547c62cb854 # v9.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BRANCH: main
           LINTER_RULES_PATH: .
+          # set_path.shでworkspaceにnpm ciするため、サードパーティのコードはlint対象から除外する
+          # GO_MODULESはこのフィルターに関係なくモジュール全体をlintするため、.golangci.ymlでもnode_modulesを除外している
+          FILTER_REGEX_EXCLUDE: (^|/)node_modules/
           # Go modulesを使っているため、こちらはfalseにする
           VALIDATE_GO: false
           VALIDATE_GIT_COMMITLINT: false

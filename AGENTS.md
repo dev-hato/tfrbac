@@ -18,14 +18,23 @@ Linting runs in CI via super-linter (`.github/workflows/super-linter.yml`).
 
 All logic lives in `main.go` (package `main`):
 
-- `run()` walks `./` with `filepath.Walk`, but all file I/O goes through an `os.Root` opened on that directory (`os.OpenRoot`) so reads/writes cannot escape it (e.g. via symlinks). Paths are converted to root-relative with `filepath.Rel` before `root.Open`/`root.OpenFile`.
-- `tfrbac(body)` does the actual removal at the **token level**, not via `body.RemoveBlock`:
-  it collects the tokens of each refactoring block, scans the file's token stream for those sequences, and splices them out.
-  This preserves original formatting/comments and also handles blank-line cleanup
-  (drops the trailing newline after a removed block, or one of two preceding newlines when there is no trailing newline).
+- `run()` walks `./` with `filepath.Walk`.
+  All file I/O goes through an `os.Root` opened on that directory (`os.OpenRoot`).
+  This keeps reads and writes from escaping it, e.g. via symlinks.
+  Paths are made root-relative with `filepath.Rel` before `root.Open`/`root.OpenFile`.
+- `tfrbac(body)` removes blocks at the **token level**, not via `body.RemoveBlock`.
+  It collects the tokens of each refactoring block and finds them in the file's token stream.
+  Then it splices them out, which preserves the original formatting and comments.
+  It also cleans up empty lines around a removed block.
+  It drops the trailing newline, or one of two preceding newlines if there is no trailing newline.
   Changes to removal behavior almost always need matching cases in `Test_tfrbac`.
-- Errors are wrapped with `github.com/cockroachdb/errors` (`errors.Wrap(err, "Error on <call>")`), and deferred `Close` errors are merged into the named return with `errors.Join`. Follow this pattern.
+- Errors are wrapped with `github.com/cockroachdb/errors` (`errors.Wrap(err, "Error on <call>")`).
+  Deferred `Close` errors are merged into the named return with `errors.Join`.
+  Follow this pattern.
 
 ## Tests
 
-`main_test.go` uses table-driven tests (map of named cases) with `testify/require`. `Test_tfrbac` runs subtests in parallel; `Test_run` does **not** run in parallel because it calls `os.Chdir` into a temp dir — keep it that way when adding cases.
+`main_test.go` uses table-driven tests (map of named cases) with `testify/require`.
+`Test_tfrbac` runs subtests in parallel.
+`Test_run` does **not** run in parallel, because it calls `os.Chdir` into a temp dir.
+Keep it that way when adding cases.

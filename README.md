@@ -2,7 +2,8 @@
 
 ## description
 
-A tool that automatically deletes import blocks, removed blocks and moved blocks (these are collectively called refactoring blocks in this project) of Terraform.
+A tool that automatically deletes import blocks, removed blocks and moved blocks of Terraform.
+In this project, these are collectively called refactoring blocks.
 
 ## install
 

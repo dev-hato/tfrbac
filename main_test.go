@@ -326,7 +326,7 @@ func Test_run_doesNotChangePermissionOfSymlinkTargetWhenTempFileIsReplaced(t *te
 	})
 
 	chdirForTest(t, tmpDir)
-	_ = run() // 差し替えによって結果がエラーになるかは問わず、リンク先の権限だけを確認する
+	require.NoError(t, run())
 
 	info, err := os.Stat(secretPath)
 	require.NoError(t, err)

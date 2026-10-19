@@ -114,6 +114,10 @@ func readTFFile(root *os.Root, relPath string) (src []byte, err error) {
 	return src, nil
 }
 
+// afterCreateTempFileHook 一時ファイルの作成直後に呼ばれる
+// テストで、作成後に一時ファイルを差し替える攻撃を再現するために使う
+var afterCreateTempFileHook = func(_ string) {}
+
 // writeTFFile 一時ファイルに書き込んでからリネームすることで、書き込み途中で失敗しても元のファイルを壊さない
 func writeTFFile(root *os.Root, relPath string, data []byte, perm os.FileMode) (err error) {
 	suffix := make([]byte, 8)
@@ -136,13 +140,11 @@ func writeTFFile(root *os.Root, relPath string, data []byte, perm os.FileMode) (
 		}
 	}()
 
-	if err := writeAndClose(wf, data); err != nil {
-		return errors.Wrap(err, "Error on writeAndClose")
-	}
+	afterCreateTempFileHook(tmpPath)
 
 	// umaskの影響を受けないよう、元のファイルの権限を明示的に設定する
-	if err := root.Chmod(tmpPath, perm); err != nil {
-		return errors.Wrap(err, "Error on Chmod")
+	if err := chmodWriteAndClose(wf, perm, data); err != nil {
+		return errors.Wrap(err, "Error on chmodWriteAndClose")
 	}
 
 	if err := root.Rename(tmpPath, relPath); err != nil {
@@ -152,14 +154,20 @@ func writeTFFile(root *os.Root, relPath string, data []byte, perm os.FileMode) (
 	return nil
 }
 
-// writeAndClose データを書き込んでディスクに同期し、ファイルを閉じる
+// chmodWriteAndClose ファイルの権限を設定し、データを書き込んでディスクに同期してから、ファイルを閉じる
 // Closeのエラーも返すため、戻り値で書き込みが最後まで完了したかを確認できる
-func writeAndClose(wf *os.File, data []byte) (err error) {
+func chmodWriteAndClose(wf *os.File, perm os.FileMode, data []byte) (err error) {
 	defer func() {
 		if closeErr := wf.Close(); closeErr != nil {
 			err = errors.Join(err, errors.Wrap(closeErr, "Error on Close"))
 		}
 	}()
+
+	// パスで指定すると、シンボリックリンクに差し替えられた場合にリンク先の権限を変えてしまうため、
+	// 開いているファイルに対して設定する
+	if err := wf.Chmod(perm); err != nil {
+		return errors.Wrap(err, "Error on Chmod")
+	}
 
 	if _, err := wf.Write(data); err != nil {
 		return errors.Wrap(err, "Error on Write")

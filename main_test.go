@@ -304,6 +304,35 @@ func Test_run_handlesLongFilename(t *testing.T) {
 	}
 }
 
+// Test_run_doesNotChangePermissionOfSymlinkTargetWhenTempFileIsReplaced 作成した一時ファイルが
+// 別ファイルへのシンボリックリンクに差し替えられても、リンク先の権限を変えないことを確認する
+func Test_run_doesNotChangePermissionOfSymlinkTargetWhenTempFileIsReplaced(t *testing.T) {
+	tmpDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "main.tf"), []byte(refactoringBlockInput), 0644))
+
+	secretPath := filepath.Join(tmpDir, "secret.tfvars")
+	secretPerm := os.FileMode(0600)
+	require.NoError(t, os.WriteFile(secretPath, []byte("password = \"xxx\"\n"), secretPerm))
+	require.NoError(t, os.Chmod(secretPath, secretPerm))
+
+	// 一時ファイルの作成直後に、同じ名前のsecret.tfvarsへのシンボリックリンクに差し替える
+	origHook := afterCreateTempFileHook
+	afterCreateTempFileHook = func(tmpPath string) {
+		require.NoError(t, os.Remove(tmpPath))
+		require.NoError(t, os.Symlink("secret.tfvars", tmpPath))
+	}
+	t.Cleanup(func() {
+		afterCreateTempFileHook = origHook
+	})
+
+	chdirForTest(t, tmpDir)
+	_ = run() // 差し替えによって結果がエラーになるかは問わず、リンク先の権限だけを確認する
+
+	info, err := os.Stat(secretPath)
+	require.NoError(t, err)
+	require.Equal(t, secretPerm, info.Mode().Perm())
+}
+
 // Test_run_doesNotWriteUnchangedFile リファクタリングブロックがないファイルは書き込まないため、
 // 書き込み権限のないファイルでもエラーにならないことを確認する
 func Test_run_doesNotWriteUnchangedFile(t *testing.T) {

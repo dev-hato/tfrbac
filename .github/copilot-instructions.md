@@ -38,3 +38,33 @@ All logic lives in `main.go` (package `main`):
 `Test_tfrbac` runs subtests in parallel.
 `Test_run` does **not** run in parallel, because it calls `os.Chdir` into a temp dir.
 Keep it that way when adding cases.
+
+## Security
+
+tfrbac rewrites files in place inside the user's Terraform directory.
+CI jobs here also run with write-capable tokens.
+When implementing or reviewing, check that the change withstands malicious input and operations.
+Working correctly is not enough.
+
+- Treat every `.tf` file and the directory tree itself as attacker-controlled.
+  Filenames, symlinks, and HCL content can all be crafted.
+- Keep all file I/O going through `os.Root`.
+  Never let symlinks, `..` or crafted paths make it read or write outside the target directory.
+- Malformed or hostile HCL must fail safely with an error.
+  It must never truncate or corrupt a file, and never cause panics or unbounded resource use.
+  Do not open a file for writing until its content has been parsed successfully.
+  Preserve the original file permissions.
+- Do not leak secrets or file contents in logs or error messages.
+- In GitHub Actions workflows and scripts, keep values from outside inside their string or code:
+  - Do not embed `${{ }}` values directly in `run:`; pass them via `env:`.
+  - In shell, always double-quote variables, and never use `eval` or build commands from strings.
+  - In jobs with write permissions, keep `persist-credentials: false` and least-privilege `permissions`.
+    Also keep `npm install --ignore-scripts` there.
+- Pin new external Actions to full commit SHAs.
+  Avoid dependency versions that were published only very recently.
+- When fixing a security issue, always write tests that confirm the issue no longer reproduces.
+  - Use the inputs an attacker would use, and confirm the fixed code skips or rejects them safely.
+    For example, symlinks pointing outside the directory, or crafted filenames.
+  - Confirm the tests fail against the code before the fix, so they actually detect the issue.
+- If a vulnerability is found during review, do not write the details in a public issue or PR.
+  Report it privately first.

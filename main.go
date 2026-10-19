@@ -122,7 +122,8 @@ func writeTFFile(root *os.Root, relPath string, data []byte, perm os.FileMode) (
 		return errors.Wrap(err, "Error on rand.Read")
 	}
 
-	tmpPath := relPath + ".tfrbac-" + hex.EncodeToString(suffix) + ".tmp"
+	// 元のファイル名を含めると、長いファイル名で上限(255バイト)を超えるため、同じディレクトリに短い名前で作る
+	tmpPath := filepath.Join(filepath.Dir(relPath), ".tfrbac-"+hex.EncodeToString(suffix)+".tmp")
 
 	// O_EXCLで、既存のファイルやシンボリックリンクを上書きしないようにする
 	wf, err := root.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, perm)

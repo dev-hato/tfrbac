@@ -35,3 +35,9 @@ jobs:
       - uses: flatt-security/setup-takumi-guard-golang@02545d3425218766aac4dca114dcc3f6eaa0df4a # v1.3.0
       - name: go test
         run: go test -v ./...
+      # Windowsも配布対象のため、Windows向けにテストを含めてコンパイルできることを確認する
+      - name: go vet (windows)
+        run: go vet ./...
+        env:
+          GOOS: windows
+          GOARCH: amd64

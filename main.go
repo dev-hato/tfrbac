@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"io"
 	"log"
 	"os"
@@ -47,6 +50,14 @@ func run() (err error) {
 			return nil
 		}
 
+		mode := info.Mode()
+
+		// シンボリックリンクやFIFOなどの通常ファイル以外はスキップ
+		// (リンク先の書き換えや、FIFOの読み込みでの停止を防ぐ)
+		if !mode.IsRegular() {
+			return nil
+		}
+
 		relPath, err := filepath.Rel(terraformDir, filePath)
 		if err != nil {
 			return errors.Wrap(err, "Error on filepath.Rel")
@@ -63,20 +74,15 @@ func run() (err error) {
 		}
 
 		body := file.Body()
-		ret := tfrbac(body)
+		ret := tfrbac(body).Bytes()
 
-		wf, err := root.OpenFile(relPath, os.O_WRONLY|os.O_TRUNC, info.Mode().Perm())
-		if err != nil {
-			return errors.Wrap(err, "Error on OpenFile")
+		// 変更がなければ書き込まない
+		if bytes.Equal(src, ret) {
+			return nil
 		}
-		defer func(wf *os.File) {
-			if closeErr := wf.Close(); closeErr != nil {
-				err = errors.Join(err, errors.Wrap(closeErr, "Error on Close"))
-			}
-		}(wf)
 
-		if _, err = wf.Write(ret.Bytes()); err != nil {
-			return errors.Wrap(err, "Error on Write")
+		if err := writeTFFile(root, relPath, ret, mode.Perm()); err != nil {
+			return errors.Wrap(err, "Error on writeTFFile")
 		}
 
 		return nil
@@ -106,6 +112,72 @@ func readTFFile(root *os.Root, relPath string) (src []byte, err error) {
 	}
 
 	return src, nil
+}
+
+// afterCreateTempFileHook 一時ファイルの作成直後に呼ばれる
+// テストで、作成後に一時ファイルを差し替える攻撃を再現するために使う
+var afterCreateTempFileHook = func(_ string) {}
+
+// writeTFFile 一時ファイルに書き込んでからリネームすることで、書き込み途中で失敗しても元のファイルを壊さない
+func writeTFFile(root *os.Root, relPath string, data []byte, perm os.FileMode) (err error) {
+	suffix := make([]byte, 8)
+
+	if _, err = rand.Read(suffix); err != nil {
+		return errors.Wrap(err, "Error on rand.Read")
+	}
+
+	// 元のファイル名を含めると、長いファイル名で上限(255バイト)を超えるため、同じディレクトリに短い名前で作る
+	tmpPath := filepath.Join(filepath.Dir(relPath), ".tfrbac-"+hex.EncodeToString(suffix)+".tmp")
+
+	// O_EXCLで、既存のファイルやシンボリックリンクを上書きしないようにする
+	wf, err := root.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, perm)
+	if err != nil {
+		return errors.Wrap(err, "Error on OpenFile")
+	}
+	defer func() {
+		if removeErr := root.Remove(tmpPath); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
+			err = errors.Join(err, errors.Wrap(removeErr, "Error on Remove"))
+		}
+	}()
+
+	afterCreateTempFileHook(tmpPath)
+
+	// umaskの影響を受けないよう、元のファイルの権限を明示的に設定する
+	if err := chmodWriteAndClose(wf, perm, data); err != nil {
+		return errors.Wrap(err, "Error on chmodWriteAndClose")
+	}
+
+	if err := root.Rename(tmpPath, relPath); err != nil {
+		return errors.Wrap(err, "Error on Rename")
+	}
+
+	return nil
+}
+
+// chmodWriteAndClose ファイルの権限を設定し、データを書き込んでディスクに同期してから、ファイルを閉じる
+// Closeのエラーも返すため、戻り値で書き込みが最後まで完了したかを確認できる
+func chmodWriteAndClose(wf *os.File, perm os.FileMode, data []byte) (err error) {
+	defer func() {
+		if closeErr := wf.Close(); closeErr != nil {
+			err = errors.Join(err, errors.Wrap(closeErr, "Error on Close"))
+		}
+	}()
+
+	// パスで指定すると、シンボリックリンクに差し替えられた場合にリンク先の権限を変えてしまうため、
+	// 開いているファイルに対して設定する
+	if err := wf.Chmod(perm); err != nil {
+		return errors.Wrap(err, "Error on Chmod")
+	}
+
+	if _, err := wf.Write(data); err != nil {
+		return errors.Wrap(err, "Error on Write")
+	}
+
+	if err := wf.Sync(); err != nil {
+		return errors.Wrap(err, "Error on Sync")
+	}
+
+	return nil
 }
 
 func tfrbac(body *hclwrite.Body) hclwrite.Tokens {

@@ -2,9 +2,11 @@ name: "Dependency Review"
 on:
   pull_request:
   merge_group:
-permissions: read-all
+permissions:
+  contents: read
 jobs:
   dependency-review:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -41,11 +41,13 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e'
         - 'flatt-security/setup-takumi-guard-golang@02545d3425218766aac4dca114dcc3f6eaa0df4a'
+    '.github/workflows/update-actions-lock.yml':
+        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
+        - 'dev-hato/actions-diff-pr-management@474e401b8a7df75f1c804a60aa987140c1e0548c'
     '.github/workflows/update-gitleaks.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'dev-hato/actions-update-gitleaks@d33ae3f5380b57036a94ecb1a40344d7cb3f20d6'
-    '.github/workflows/verify-lockfile.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
 dependencies:
     'actions/add-to-project@f2c1f1fa649a891be84948ea89b5dfba1526ef05':
         ref: 'v2.0.1'

@@ -5,15 +5,16 @@ on:
     branches: [main]
   merge_group:
   workflow_dispatch:
-permissions:
-  contents: read
-  packages: read
-  pull-requests: write
-  statuses: write
+permissions: {}
 jobs:
   super-linter:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
+      statuses: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -32,12 +33,30 @@ jobs:
           DEFAULT_BRANCH: main
           LINTER_RULES_PATH: .
           # set_path.shでworkspaceにnpm ciするため、サードパーティのコードはlint対象から除外する
-          # GO_MODULESはこのフィルターに関係なくモジュール全体をlintするため、.golangci.ymlでもnode_modulesを除外している
+          # golangci-lintはこのフィルターに関係なくモジュール全体をlintするため、.golangci.ymlでもnode_modulesを除外している
           FILTER_REGEX_EXCLUDE: (^|/)node_modules/
           # Go modulesを使っているため、こちらはfalseにする
           VALIDATE_GO: false
+          # Super-Linterに同梱のgolangci-lintのGoのバージョンに依存しないよう、golangci-lintジョブで検査する
+          VALIDATE_GO_MODULES: false
           VALIDATE_GIT_COMMITLINT: false
           VALIDATE_BIOME_FORMAT: false
+  golangci-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: flatt-security/setup-takumi-guard-golang@02545d3425218766aac4dca114dcc3f6eaa0df4a # v1.3.0
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version-file: .tool-versions
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true

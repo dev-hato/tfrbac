@@ -42,13 +42,16 @@ Keep it that way when adding cases.
 ## Git operations
 
 - Force push only when the PR has no reviews yet.
-  - Before rewriting history with rebase, amend, etc., record the tip SHA of the remote branch whose commits the rewrite includes.
-  - When pushing, pass that recorded SHA as the expected value, e.g. `git push --force-with-lease=<branch>:<recorded SHA>`.
+  - Before rewriting history with rebase, amend, etc., record the tip SHA of the remote branch.
+    Record the tip of the remote commits that the rewrite will include.
+  - When pushing, pass that recorded SHA as the expected value.
+    For example, `git push --force-with-lease=<branch>:<recorded SHA>`.
     Do not use a tip SHA re-fetched right before the push as the expected value.
     That would overwrite commits added while you were rewriting.
-  - If someone else or a bot added commits after you recorded the SHA and the push is rejected, stop there.
+  - If the push is rejected because someone else or a bot added commits, stop there.
     Do not overwrite with `--force` or with `--force-with-lease` without an expected value.
-- If the PR already has reviews, do not force push; address feedback with additional commits so the PR timeline stays in order.
+- If the PR already has reviews, do not force push.
+  Address feedback with additional commits so the PR timeline stays in order.
 
 ## Security
 
